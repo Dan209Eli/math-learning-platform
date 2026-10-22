@@ -1,0 +1,21 @@
+{
+  "name": "math-learning-platform",
+  "version": "1.0.0",
+  "description": "An interactive mathematics learning platform featuring lessons, quizzes and students progressing tracking",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dan209Eli/math-learning-platform.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Dan209Eli/math-learning-platform/issues"
+  },
+  "homepage": "https://github.com/Dan209Eli/math-learning-platform#readme"
+}
