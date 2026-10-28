@@ -3,96 +3,90 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Mathematics Platform</title>
-  <link rel="stylesheet" href="css/styles.css">
-  <!-- MathJax Configuration and Script -->
-  <script>
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']]
-      },
-      svg: {
-        fontCache: 'global'
-      }
-    };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <title>Math Learning Platform - Quizzes</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f9f9f9; }
+    .quiz-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    button { display: block; width: 100%; padding: 10px; margin: 8px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+    button:hover { background: #0056b3; }
+    #result { font-weight: bold; margin-top: 10px; padding: 10px; border-radius: 4px; text-align: center; }
+    .correct { background: #d4edda; color: #155724; }
+    .incorrect { background: #f8d7da; color: #721c24; }
+  </style>
 </head>
 <body>
-  <header class="navbar">
-    <div class="logo">📐 Math Academy</div>
-    <nav>
-      <a href="#lessons">Lessons</a>
-      <a href="#quizzes">Quizzes</a>
-      <a href="#progress">Progress</a>
-    </nav>
-  </header>
 
-  <main class="hero">
-    <h1>Master Mathematics Through Patterns & Reasoning</h1>
-    <p>Interactive lessons and real-time assessments for Senior High School Mathematics.</p>
-    <a href="#lessons" class="btn-primary">Explore Lessons</a>
-  </main>
+  <h1>Interactive Math Quizzes</h1>
+  <div id="quiz-container">Loading questions from the server...</div>
+  <div id="result"></div>
 
-  <section id="lessons" class="lessons-container">
-    <h2>Core Mathematics Topics</h2>
-    <div class="card-grid">
-      <article class="card">
-        <h3>Algebra & Functions</h3>
-        <p>Explore quadratic equations, algebraic expressions, and functional relationships.</p>
-        <button class="btn-secondary">Start Module</button>
-      </article>
+  <script>
+    let currentQuizIndex = 0;
+    let quizzes = [];
 
-      <article class="card">
-        <h3>Plane Geometry</h3>
-        <p>Master circle theorems, geometric proofs, and spatial reasoning patterns.</p>
-        <button class="btn-secondary">Start Module</button>
-      </article>
+    // 1. Fetch questions from our backend GET route
+    async function loadQuiz() {
+      try {
+        const response = await fetch('http://localhost:3000/api/quizzes');
+        const data = await response.json();
+        
+        if (data.success && data.data.length > 0) {
+          renderQuiz(data.data[0]); // Let's load the first question for now!
+        }
+      } catch (error) {
+        document.getElementById('quiz-container').innerText = "Failed to load quizzes from server!";
+        console.error("Error fetching quizzes:", error);
+      }
+    }
 
-      <article class="card">
-        <h3>Trigonometry</h3>
-        <p>Analyze trigonometric ratios, identities, and real-world angle calculations.</p>
-        <button class="btn-secondary">Start Module</button>
-      </article>
-    </div>
-  </section>
+    // 2. Render the question and options onto the HTML page
+    function renderQuiz(quiz) {
+      const container = document.getElementById('quiz-container');
+      
+      let html = `
+        <div class="quiz-card">
+          <h3>Topic: ${quiz.topic}</h3>
+          <p><strong>${quiz.question}</strong></p>
+      `;
+      
+      quiz.options.forEach(option => {
+        html += `<button onclick="submitAnswer(${quiz.id}, '${option}')">${option}</button>`;
+      });
+      
+      html += `</div>`;
+      container.innerHTML = html;
+    }
 
-  <section id="quizzes" class="quiz-container">
-    <h2>Interactive Assessment</h2>
-    <div class="quiz-card">
-      <div class="question-header">
-        <span class="badge">Algebra</span>
-        <h3>Question 1: Solve for $x$ in $2x + 5 = 15$</h3>
-      </div>
-      <div class="options">
-        <label class="option"><input type="radio" name="q1" value="a"> A) $x = 3$</label>
-        <label class="option"><input type="radio" name="q1" value="b"> B) $x = 5$</label>
-        <label class="option"><input type="radio" name="q1" value="c"> C) $x = 10$</label>
-        <label class="option"><input type="radio" name="q1" value="d"> D) $x = 20$</label>
-      </div>
-      <button class="btn-primary" style="margin-top: 1.5rem;">Submit Answer</button>
-    </div>
-  </section>
+    // 3. Send the student's answer to our backend POST grading route
+    async function submitAnswer(quizId, selectedAnswer) {
+      try {
+        const response = await fetch('http://localhost:3000/api/quizzes/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quizId, selectedAnswer })
+        });
+        
+        const result = await response.json();
+        const resultDiv = document.getElementById('result');
+        
+        resultDiv.innerText = result.message;
+        resultDiv.className = result.isCorrect ? 'correct' : 'incorrect';
 
-  <section id="progress" class="progress-container">
-    <h2>Your Learning Journey</h2>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-number">3 / 12</span>
-        <span class="stat-label">Modules Completed</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-number">85%</span>
-        <span class="stat-label">Quiz Accuracy</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-number">5 Days</span>
-        <span class="stat-label">Current Streak</span>
-      </div>
-    </div>
-  </section>
+        // If correct, show a "Next Question" button afrer a short moment!
+        if (result.isCorrect && currintQuizIndex < quizzes.length - 1) {
+          setTimeout(() => {
+            currentQuizIndex++;
+            renderQuiz(quizzes[currentQuizIndex]);
+          }, 1500);
+        }
+      } catch (error) {
+        console.error("Error submitting answer:", error);
+      }
+    }
 
-  <script src="../src/app.js"></script>
+    // Run the function when the page loads
+    loadQuiz();
+  </script>
+
 </body>
 </html>
