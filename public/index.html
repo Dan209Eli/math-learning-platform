@@ -21,31 +21,41 @@
   <div id="result"></div>
 
   <script>
+ 
     let currentQuizIndex = 0;
     let quizzes = [];
+    let score = 0;
 
-    // 1. Fetch questions from our backend GET route
-    async function loadQuiz() {
+    // 1. Professional Loading State
+    async function loadQuizzes() {
+      const container = document.getElementById('quiz-container');
+      container.innerHTML = `<p style="color: #666; font-style: italic;">Loading interactive math modules...</p>`;
+
       try {
         const response = await fetch('http://localhost:3000/api/quizzes');
         const data = await response.json();
         
         if (data.success && data.data.length > 0) {
-          renderQuiz(data.data[0]); // Let's load the first question for now!
+          quizzes = data.data;
+          renderQuiz(quizzes[currentQuizIndex]);
+        } else {
+          container.innerHTML = `<p style="color: red;">No quiz modules available at the moment.</p>`;
         }
       } catch (error) {
-        document.getElementById('quiz-container').innerText = "Failed to load quizzes from server!";
+        container.innerText = "Failed to connect to the learning server!";
         console.error("Error fetching quizzes:", error);
       }
     }
 
-    // 2. Render the question and options onto the HTML page
+    // 2. Render Current Question & Progress
     function renderQuiz(quiz) {
       const container = document.getElementById('quiz-container');
+      document.getElementById('result').innerText = "";
+      document.getElementById('result').className = "";
       
       let html = `
         <div class="quiz-card">
-          <h3>Topic: ${quiz.topic}</h3>
+          <h3>Topic: ${quiz.topic} <span style="font-size: 0.85rem; color: #555; float: right;">Question ${currentQuizIndex + 1} of ${quizzes.length}</span></h3>
           <p><strong>${quiz.question}</strong></p>
       `;
       
@@ -57,8 +67,12 @@
       container.innerHTML = html;
     }
 
-    // 3. Send the student's answer to our backend POST grading route
+    // 3. Handle Answer Submission & Score Tracking
     async function submitAnswer(quizId, selectedAnswer) {
+      // Disable buttons temporarily to prevent double-clicking
+      const buttons = document.querySelectorAll('.quiz-card button');
+      buttons.forEach(btn => btn.disabled = true);
+
       try {
         const response = await fetch('http://localhost:3000/api/quizzes/submit', {
           method: 'POST',
@@ -72,20 +86,51 @@
         resultDiv.innerText = result.message;
         resultDiv.className = result.isCorrect ? 'correct' : 'incorrect';
 
-        // If correct, show a "Next Question" button afrer a short moment!
-        if (result.isCorrect && currintQuizIndex < quizzes.length - 1) {
-          setTimeout(() => {
-            currentQuizIndex++;
-            renderQuiz(quizzes[currentQuizIndex]);
-          }, 1500);
+        if (result.isCorrect) {
+          score++;
         }
+
+        // Delay before moving to the next question or showing final summary
+        setTimeout(() => {
+          currentQuizIndex++;
+          if (currentQuizIndex < quizzes.length) {
+            renderQuiz(quizzes[currentQuizIndex]);
+          } else {
+            renderFinalScore();
+          }
+        }, 1500);
+
       } catch (error) {
         console.error("Error submitting answer:", error);
+        buttons.forEach(btn => btn.disabled = false);
       }
     }
 
-    // Run the function when the page loads
-    loadQuiz();
+    // 4. Final Score Summary Screen
+    function renderFinalScore() {
+      const container = document.getElementById('quiz-container');
+      document.getElementById('result').innerText = "";
+      
+      const percentage = Math.round((score / quizzes.length) * 100);
+      
+      container.innerHTML = `
+        <div class="quiz-card" style="text-align: center;">
+          <h2>🎉 Quiz Completed!</h2>
+          <p>You scored <strong>${score}</strong> out of <strong>${quizzes.length}</strong> (${percentage}%)</p>
+          <button onclick="restartQuiz()" style="background-color: #28a745; color: white; margin-top: 15px;">Try Again</button>
+        </div>
+      `;
+    }
+
+    function restartQuiz() {
+      currentQuizIndex = 0;
+      score = 0;
+      loadQuizzes();
+    }
+
+    // Initialize on page load
+    loadQuizzes();
+  
   </script>
 
 </body>
