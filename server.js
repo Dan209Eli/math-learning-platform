@@ -1,59 +1,69 @@
 const express = require('express');
 const cors = require('cors');
+const prisma = require('./src/prisma'); // Import our shared Prisma helper
+
 const app = express();
 const PORT = 3000;
 
-// 1. Middleware (The security guard and translator)
+// 1. Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
-// 2. Our storage box of math questions (The menu)
-const mathQuizzes = [
-  {
-    id: 1,
-    topic: "Algebra",
-    question: "Solve for $x$: $2x + 5 = 15$",
-    options: ["$x = 3$", "$x = 5$", "$x = 7$", "$x = 10$"],
-    correctAnswer: "$x = 5$"
-  },
-  {
-    id: 2,
-    topic: "Linear Equations",
-    question: "What is the slope of the line $y = 3x + 2$?",
-    options: ["$2$", "$3$", "$5$", "$1$"],
-    correctAnswer: "$3$"
+// -------------------------------------------------------------
+// ROUTE 1: Get all quizzes from the SQLite database (READ)
+// -------------------------------------------------------------
+app.get('/api/quizzes', async (req, res) => {
+  try {
+    // Tell Prisma to fetch all quizzes and their multiple-choice options from the database
+    const quizzes = await prisma.quiz.findMany({
+      include: {
+        options: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      count: quizzes.length,
+      data: quizzes,
+    });
+  } catch (error) {
+    console.error('Failed to fetch quizzes from database:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch quizzes' });
   }
-];
-
-// 3. GET Route: Serve the quizzes to the frontend
-app.get('/api/quizzes', (req, res) => {
-  res.json({
-    success: true,
-    count: mathQuizzes.length,
-    data: mathQuizzes
-  });
 });
 
-// 4. POST Route: Grade the student's answer
-app.post('/api/quizzes/submit', (req, res) => {
-  const { quizId, selectedAnswer } = req.body;
-  const quiz = mathQuizzes.find(q => q.id === quizId);
-  
-  if (!quiz) {
-    return res.status(404).json({ success: false, message: "Quiz not found!" });
+// -------------------------------------------------------------
+// ROUTE 2: Grade the student's answer using the database
+// -------------------------------------------------------------
+app.post('/api/quizzes/submit', async (req, res) => {
+  try {
+    const { quizId, selectedAnswer } = req.body;
+
+    // Find the specific quiz in our database by its ID
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: quizId },
+    });
+
+    if (!quiz) {
+      return res.status(404).json({ success: false, message: "Quiz not found!" });
+    }
+
+    const isCorrect = selectedAnswer === quiz.correctAnswer;
+
+    res.json({
+      success: true,
+      isCorrect,
+      message: isCorrect ? "Spot on! That's correct! 🎉" : "Not quite, keep trying! 💪",
+      correctAnswer: isCorrect ? null : quiz.correctAnswer,
+    });
+  } catch (error) {
+    console.error('Failed to grade quiz:', error);
+    res.status(500).json({ success: false, error: 'Failed to grade quiz' });
   }
-  
-  const isCorrect = selectedAnswer === quiz.correctAnswer;
-  
-  res.json({
-    success: true,
-    isCorrect: isCorrect,
-    message: isCorrect ? "Spot on! That's correct! 🎉" : "Not quite, keep trying! 💪",
-    correctAnswer: isCorrect ? null : quiz.correctAnswer
-  });
 });
 
-// 5. START THE SERVER (Always goes at the very bottom!)
+// Start the server
 app.listen(PORT, () => {
   console.log(`Backend server is running live at http://localhost:${PORT}`);
 });

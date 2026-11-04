@@ -70,7 +70,7 @@
       `;
       
       quiz.options.forEach(option => {
-        html += `<button onclick="submitAnswer(${quiz.id}, '${option}')">${option}</button>`;
+        html += `<button onclick="submitAnswer(${quiz.id}, '${option.text}')">${option.text}</button>`;
       });
       
       html += `</div>`;
