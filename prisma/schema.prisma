@@ -13,6 +13,7 @@ model Quiz {
   question      String
   options       Option[]
   correctAnswer String
+  explanation   String?
   createdAt     DateTime @default(now())
 }
 
