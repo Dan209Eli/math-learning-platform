@@ -9,20 +9,21 @@
     .quiz-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
     button { display: block; width: 100%; padding: 10px; margin: 8px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
     button:hover { background: #0056b3; }
+    button:disabled { background: #cccccc; cursor: not-allowed; }
     #result { font-weight: bold; margin-top: 10px; padding: 10px; border-radius: 4px; text-align: center; }
     .correct { background: #d4edda; color: #155724; }
     .incorrect { background: #f8d7da; color: #721c24; }
+    #explanation-container { display: none; margin-top: 15px; padding: 12px; background: #eef2f7; border-left: 4px solid #007bff; border-radius: 4px; text-align: left; font-size: 0.95rem; color: #333; }
   </style>
 
   <script>
-  window.MathJax = {
-    tex: {
-      inlineMath: [['$', '$'], ['\\(', '\\)']]
-    }
-  };
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
-
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 </head>
 <body>
 
@@ -31,7 +32,6 @@
   <div id="result"></div>
 
   <script>
- 
     let currentQuizIndex = 0;
     let quizzes = [];
     let score = 0;
@@ -72,17 +72,20 @@
       quiz.options.forEach(option => {
         html += `<button onclick="submitAnswer(${quiz.id}, '${option.text}')">${option.text}</button>`;
       });
-      
+
+      // Explanation box placeholder inside the card
+      html += `<div id="explanation-container"></div>`;
       html += `</div>`;
+      
       container.innerHTML = html;
 
-      //Trigger MathJax re-render if available in the global scope
+      // Trigger MathJax re-render for questions/options
       if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
         MathJax.typesetPromise([container]).catch((err) => console.log('MathJax typeset error:', err));
       }
     }
 
-    // 3. Handle Answer Submission & Score Tracking
+    // 3. Handle Answer Submission, Score Tracking & Explanations
     async function submitAnswer(quizId, selectedAnswer) {
       // Disable buttons temporarily to prevent double-clicking
       const buttons = document.querySelectorAll('.quiz-card button');
@@ -105,6 +108,19 @@
           score++;
         }
 
+        // Display the step-by-step explanation if available
+        const currentQuiz = quizzes[currentQuizIndex];
+        const explanationDiv = document.getElementById('explanation-container');
+        if (explanationDiv && currentQuiz.explanation) {
+          explanationDiv.innerHTML = `<strong>Solution Breakdown:</strong><br>${currentQuiz.explanation}`;
+          explanationDiv.style.display = 'block';
+          
+          // Re-run MathJax specifically on the explanation box so formulas render properly
+          if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+            MathJax.typesetPromise([explanationDiv]).catch((err) => console.log('MathJax typeset error:', err));
+          }
+        }
+
         // Delay before moving to the next question or showing final summary
         setTimeout(() => {
           currentQuizIndex++;
@@ -113,7 +129,7 @@
           } else {
             renderFinalScore();
           }
-        }, 1500);
+        }, 4000); // Extended slightly to give students time to read the explanation
 
       } catch (error) {
         console.error("Error submitting answer:", error);
@@ -145,7 +161,6 @@
 
     // Initialize on page load
     loadQuizzes();
-  
   </script>
 
 </body>
