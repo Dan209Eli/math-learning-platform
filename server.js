@@ -11,12 +11,14 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // -------------------------------------------------------------
-// ROUTE 1: Get all quizzes from the SQLite database (READ)
-// -------------------------------------------------------------
 app.get('/api/quizzes', async (req, res) => {
   try {
-    // Tell Prisma to fetch all quizzes and their multiple-choice options from the database
+    const { topic } = req.query;
+    const whereClause = topic ? { topic } : {};
+    
+    // Tell Prisma to fetch quizzes (filtered by topic if provided) and their options
     const quizzes = await prisma.quiz.findMany({
+      where: whereClause,
       include: {
         options: true,
       },
@@ -29,7 +31,7 @@ app.get('/api/quizzes', async (req, res) => {
     });
   } catch (error) {
     console.error('Failed to fetch quizzes from database:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch quizzes' });
+    res.status(500).json({ success: false, message: 'Failed to fetch quizzes' });
   }
 });
 
