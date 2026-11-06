@@ -37,31 +37,34 @@ app.get('/api/quizzes', async (req, res) => {
 
 // -------------------------------------------------------------
 // ROUTE 2: Grade the student's answer using the database
-// -------------------------------------------------------------
+// ----------------------------------------------------------
 app.post('/api/quizzes/submit', async (req, res) => {
   try {
     const { quizId, selectedAnswer } = req.body;
-
-    // Find the specific quiz in our database by its ID
+    
     const quiz = await prisma.quiz.findUnique({
-      where: { id: quizId },
+      where: { id: Number(quizId) }
     });
 
     if (!quiz) {
-      return res.status(404).json({ success: false, message: "Quiz not found!" });
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
 
-    const isCorrect = selectedAnswer === quiz.correctAnswer;
+    // Normalize strings by trimming whitespace to prevent false mismatches
+    const normalizedSelected = String(selectedAnswer).trim();
+    const normalizedCorrect = String(quiz.correctAnswer).trim();
+
+    const isCorrect = normalizedSelected === normalizedCorrect;
 
     res.json({
       success: true,
       isCorrect,
-      message: isCorrect ? "Spot on! That's correct! 🎉" : "Not quite, keep trying! 💪",
-      correctAnswer: isCorrect ? null : quiz.correctAnswer,
+      message: isCorrect ? 'Spot on! Excellent work! 🎉' : 'Not quite, keep trying! 💪',
+      correctAnswer: quiz.correctAnswer
     });
   } catch (error) {
-    console.error('Failed to grade quiz:', error);
-    res.status(500).json({ success: false, error: 'Failed to grade quiz' });
+    console.error('Error verifying answer:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
