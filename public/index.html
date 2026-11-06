@@ -12,7 +12,7 @@
     button { display: block; width: 100%; padding: 10px; margin: 8px 0; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
     button:hover { background: #0056b3; }
     button:disabled { background: #cccccc; cursor: not-allowed; }
-    #result { font-weight: bold; margin-top: 10px; padding: 10px; border-radius: 4px; text-align: center; }
+    #result { font-weight: bold; margin-top: 15px; padding: 10px; border-radius: 4px; text-align: center; }
     .correct { background: #d4edda; color: #155724; }
     .incorrect { background: #f8d7da; color: #721c24; }
     #explanation-container { display: none; margin-top: 15px; padding: 12px; background: #eef2f7; border-left: 4px solid #007bff; border-radius: 4px; text-align: left; font-size: 0.95rem; color: #333; }
@@ -46,13 +46,12 @@
   </div>
 
   <div id="quiz-container">Loading questions from the server...</div>
-  <div id="result"></div>
 
   <script>
     let currentQuizIndex = 0;
     let quizzes = [];
     let score = 0;
-    let topicPerformance = {}; // Track correct/total per topic
+    let topicPerformance = {};
 
     async function loadQuizzes() {
       const container = document.getElementById('quiz-container');
@@ -77,7 +76,6 @@
           renderQuiz(quizzes[currentQuizIndex]);
         } else {
           container.innerHTML = `<p style="color: #c0392b; text-align: center; padding: 20px;">No quiz modules available for this topic.</p>`;
-          document.getElementById('result').innerText = "";
         }
       } catch (error) {
         container.innerText = "Failed to connect to the learning server!";
@@ -91,19 +89,19 @@
 
     function renderQuiz(quiz) {
       const container = document.getElementById('quiz-container');
-      document.getElementById('result').innerText = "";
-      document.getElementById('result').className = "";
       
       let html = `
-        <div class="quiz-card">
+        <div class="quiz-card" id="active-quiz-card">
           <h3>Topic: ${quiz.topic} <span style="font-size: 0.85rem; color: #555; float: right;">Question ${currentQuizIndex + 1} of ${quizzes.length}</span></h3>
           <p><strong>${quiz.question}</strong></p>
       `;
       
-      quiz.options.forEach(option => {
-        html += `<button onclick="submitAnswer(${quiz.id}, '${option.text}')">${option.text}</button>`;
+      // Pass the option index instead of the raw LaTeX string to avoid escape character bugs (\f)
+      quiz.options.forEach((option, index) => {
+        html += `<button onclick="submitAnswer(${quiz.id}, ${index})">${option.text}</button>`;
       });
 
+      html += `<div id="result"></div>`;
       html += `<div id="explanation-container"></div>`;
       html += `</div>`;
       
@@ -114,14 +112,14 @@
       }
     }
 
-    async function submitAnswer(quizId, selectedAnswer) {
+    async function submitAnswer(quizId, optionIndex) {
       const buttons = document.querySelectorAll('.quiz-card button');
       buttons.forEach(btn => btn.disabled = true);
 
       const currentQuiz = quizzes[currentQuizIndex];
+      const selectedAnswer = currentQuiz.options[optionIndex].text; // Safely grab text from memory
       const topic = currentQuiz.topic;
 
-      // Initialize topic tracker if not present
       if (!topicPerformance[topic]) {
         topicPerformance[topic] = { correct: 0, total: 0 };
       }
@@ -147,11 +145,14 @@
 
         const explanationDiv = document.getElementById('explanation-container');
         if (explanationDiv && currentQuiz.explanation) {
-          explanationDiv.innerHTML = `<strong>Solution Breakdown:</strong><br>${currentQuiz.explanation}`;
+          explanationDiv.innerHTML = `<strong>Solution Breakdown:</i><br>${currentQuiz.explanation}`;
           explanationDiv.style.display = 'block';
           
           if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
-            MathJax.typesetPromise([explanationDiv]).catch((err) => console.log('MathJax typeset error:', err));
+            MathJax.typesetPromise([explanationDiv]).then(() => {
+              // Automatically smooth-scroll to the explanation so the user never has to manually scroll!
+              explanationDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }).catch((err) => console.log('MathJax typeset error:', err));
           }
         }
 
@@ -162,7 +163,7 @@
           } else {
             renderFinalScore();
           }
-        }, 4000);
+        }, 5000); // Extended slightly to give students time to read the breakdown
 
       } catch (error) {
         console.error("Error submitting answer:", error);
@@ -172,7 +173,6 @@
 
     function renderFinalScore() {
       const container = document.getElementById('quiz-container');
-      document.getElementById('result').innerText = "";
       
       const percentage = Math.round((score / quizzes.length) * 100);
       
@@ -203,7 +203,7 @@
               </tr>
             </thead>
             <tbody>
-              ${breakdownRows}
+              ${breakboardRows = breakdownRows}
             </tbody>
           </table>
 
