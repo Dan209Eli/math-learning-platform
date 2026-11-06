@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Math Learning Platform - Quizzes</title>
+  <title>Math Learning Platform - Quizzes & Dashboard</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f9f9f9; }
     .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -16,6 +16,9 @@
     .correct { background: #d4edda; color: #155724; }
     .incorrect { background: #f8d7da; color: #721c24; }
     #explanation-container { display: none; margin-top: 15px; padding: 12px; background: #eef2f7; border-left: 4px solid #007bff; border-radius: 4px; text-align: left; font-size: 0.95rem; color: #333; }
+    .dashboard-table { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left; }
+    .dashboard-table th, .dashboard-table td { padding: 8px 12px; border-bottom: 1px solid #ddd; font-size: 0.95rem; }
+    .dashboard-table th { background-color: #f1f5f9; color: #333; }
   </style>
 
   <script>
@@ -31,7 +34,6 @@
 
   <h1>Interactive Math Quizzes</h1>
   
-  <!-- Topic Filtering Controls -->
   <div class="controls">
     <label for="topic-select"><strong>Curriculum Module:</strong></label>
     <select id="topic-select" onchange="filterQuizzes()">
@@ -50,8 +52,8 @@
     let currentQuizIndex = 0;
     let quizzes = [];
     let score = 0;
+    let topicPerformance = {}; // Track correct/total per topic
 
-    // 1. Load Quizzes with Optional Topic Filter
     async function loadQuizzes() {
       const container = document.getElementById('quiz-container');
       container.innerHTML = `<p style="color: #666; font-style: italic;">Loading interactive math modules...</p>`;
@@ -68,6 +70,7 @@
         
         currentQuizIndex = 0;
         score = 0;
+        topicPerformance = {};
 
         if (data.success && data.data.length > 0) {
           quizzes = data.data;
@@ -86,7 +89,6 @@
       loadQuizzes();
     }
 
-    // 2. Render Current Question & Progress
     function renderQuiz(quiz) {
       const container = document.getElementById('quiz-container');
       document.getElementById('result').innerText = "";
@@ -112,10 +114,18 @@
       }
     }
 
-    // 3. Handle Answer Submission, Score Tracking & Explanations
     async function submitAnswer(quizId, selectedAnswer) {
       const buttons = document.querySelectorAll('.quiz-card button');
       buttons.forEach(btn => btn.disabled = true);
+
+      const currentQuiz = quizzes[currentQuizIndex];
+      const topic = currentQuiz.topic;
+
+      // Initialize topic tracker if not present
+      if (!topicPerformance[topic]) {
+        topicPerformance[topic] = { correct: 0, total: 0 };
+      }
+      topicPerformance[topic].total++;
 
       try {
         const response = await fetch('http://localhost:3000/api/quizzes/submit', {
@@ -132,9 +142,9 @@
 
         if (result.isCorrect) {
           score++;
+          topicPerformance[topic].correct++;
         }
 
-        const currentQuiz = quizzes[currentQuizIndex];
         const explanationDiv = document.getElementById('explanation-container');
         if (explanationDiv && currentQuiz.explanation) {
           explanationDiv.innerHTML = `<strong>Solution Breakdown:</strong><br>${currentQuiz.explanation}`;
@@ -160,18 +170,44 @@
       }
     }
 
-    // 4. Final Score Summary Screen
     function renderFinalScore() {
       const container = document.getElementById('quiz-container');
       document.getElementById('result').innerText = "";
       
       const percentage = Math.round((score / quizzes.length) * 100);
       
+      let breakdownRows = '';
+      for (const [topic, stats] of Object.entries(topicPerformance)) {
+        const topicPct = Math.round((stats.correct / stats.total) * 100);
+        breakdownRows += `
+          <tr>
+            <td>${topic}</td>
+            <td>${stats.correct} / ${stats.total}</td>
+            <td>${topicPct}%</td>
+          </tr>
+        `;
+      }
+      
       container.innerHTML = `
-        <div class="quiz-card" style="text-align: center;">
-          <h2>🎉 Module Completed!</h2>
-          <p>You scored <strong>${score}</strong> out of <strong>${quizzes.length}</strong> (${percentage}%)</p>
-          <button onclick="restartQuiz()" style="background-color: #28a745; color: white; margin-top: 15px;">Practice Again</button>
+        <div class="quiz-card">
+          <h2 style="text-align: center;">📊 Performance Dashboard</h2>
+          <p style="text-align: center;">Overall Score: <strong>${score}</strong> / <strong>${quizzes.length}</strong> (${percentage}%)</p>
+          
+          <h4 style="margin-top: 20px;">Topic Breakdown:</h4>
+          <table class="dashboard-table">
+            <thead>
+              <tr>
+                <th>Module</th>
+                <th>Correct</th>
+                <th>Accuracy</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${breakdownRows}
+            </tbody>
+          </table>
+
+          <button onclick="restartQuiz()" style="background-color: #28a745; color: white; margin-top: 20px;">Practice Again</button>
         </div>
       `;
     }
@@ -179,10 +215,10 @@
     function restartQuiz() {
       currentQuizIndex = 0;
       score = 0;
+      topicPerformance = {};
       loadQuizzes();
     }
 
-    // Initialize on page load
     loadQuizzes();
   </script>
 
