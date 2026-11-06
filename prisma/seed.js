@@ -98,6 +98,42 @@ async function main() {
     },
   });
 
+  // Topic 6: Indices & Logarithms
+  await prisma.quiz.create({
+    data: {
+      topic: 'Algebra',
+      question: 'Simplify the expression: $\\log_{10}(25) + \\log_{10}(4)$',
+      correctAnswer: '$2$',
+      explanation: 'Using the logarithm product rule $\\log(a) + \\log(b) = \\log(ab)$, we get $\\log_{10}(25 \\times 4) = \\log_{10}(100)$. Since $10^2 = 100$, the answer is $2$.',
+      options: {
+        create: [
+          { text: '$1$' },
+          { text: '$2$' },
+          { text: '$10$' },
+          { text: '$29$' },
+        ],
+      },
+    },
+  });
+
+  // Topic 7: Probability
+  await prisma.quiz.create({
+    data: {
+      topic: 'Statistics',
+      question: 'A fair die is rolled once. What is the probability of rolling an even number?',
+      correctAnswer: '$\\frac{1}{2}$',
+      explanation: 'The sample space for a die is $\\{1, 2, 3, 4, 5, 6\\}$ (6 outcomes). The even numbers are $\\{2, 4, 6\\}$ (3 outcomes). Probability = $\\frac{3}{6} = \\frac{1}{2}$.',
+      options: {
+        create: [
+          { text: '$\\frac{1}{3}$' },
+          { text: '$\\frac{1}{2}$' },
+          { text: '$\\frac{2}{3}$' },
+          { text: '$1$' },
+        ],
+      },
+    },
+  });
+
   console.log('✅ SHS Math curriculum with explanations seeded successfully!');
 }
 
