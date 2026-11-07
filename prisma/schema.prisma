@@ -23,3 +23,12 @@ model Option {
   quizId Int
   quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
 }
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+}
+
