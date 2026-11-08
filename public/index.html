@@ -31,6 +31,44 @@
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
 </head>
 <body>
+  <!-- AUTHENTICATION CONTAINER -->
+<div id="auth-container" class="card p-4 my-4 shadow-sm">
+  <div id="auth-forms">
+    <h3 id="auth-title">Student Sign Up</h3>
+    
+    <!-- Form for Login / Register -->
+    <form id="auth-form">
+      <div id="name-field-group" class="mb-3">
+        <label for="auth-name" class="form-label">Full Name</label>
+        <input type="text" id="auth-name" class="form-control" placeholder="Enter your name">
+      </div>
+
+      <div class="mb-3">
+        <label for="auth-email" class="form-label">Email Address</label>
+        <input type="email" id="auth-email" class="form-control" required placeholder="student@example.com">
+      </div>
+
+      <div class="mb-3">
+        <label for="auth-password" class="form-label">Password</label>
+        <input type="password" id="auth-password" class="form-control" required placeholder="********">
+      </div>
+
+      <button type="submit" id="auth-submit-btn" class="btn btn-primary w-100">Create Account</button>
+    </form>
+
+    <!-- Toggle between Login and Register -->
+    <div class="text-center mt-3">
+      <p id="auth-toggle-text">Already have an account? <a href="#" id="toggle-mode-btn">Log in here</a></p>
+    </div>
+  </div>
+
+  <!-- Hidden User Profile Box (Shows only when logged in) -->
+  <div id="user-profile-box" style="display: none;">
+    <h4>Welcome, <span id="display-user-name"></span>! 🎉</h4>
+    <p class="text-muted" id="display-user-email"></p>
+    <button id="logout-btn" class="btn btn-outline-danger btn-sm">Log Out</button>
+  </div>
+</div>
 
   <h1>Interactive Math Quizzes</h1>
   
@@ -220,6 +258,124 @@
     }
 
     loadQuizzes();
+  </script>
+
+  <script>
+    // Keep track of whether we are in "Register" or "Login" mode
+    let isLoginMode = false;
+
+    const authForm = document.getElementById('auth-form');
+    const authTitle = document.getElementById('auth-title');
+    const nameFieldGroup = document.getElementById('name-field-group');
+    const authSubmitBtn = document.getElementById('auth-submit-btn');
+    const toggleModeBtn = document.getElementById('toggle-mode-btn');
+    const authFormsDiv = document.getElementById('auth-forms');
+    const userProfileBox = document.getElementById('user-profile-box');
+    const displayUserName = document.getElementById('display-user-name');
+    const displayUserEmail = document.getElementById('display-user-email');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // 1. Toggle between Sign Up and Login modes
+    toggleModeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      isLoginMode = !isLoginMode;
+      if (isLoginMode) {
+        authTitle.innerText = 'Student Login';
+        nameFieldGroup.style.display = 'none'; // Hide name field for login
+        authSubmitBtn.innerText = 'Log In';
+        toggleModeBtn.innerText = "Don't have an account? Sign up here";
+      } else {
+        authTitle.innerText = 'Student Sign Up';
+        nameFieldGroup.style.display = 'block'; // Show name field for registration
+        authSubmitBtn.innerText = 'Create Account';
+        toggleModeBtn.innerText = 'Already have an account? Log in here';
+      }
+    });
+
+    // 2. Handle Form Submission
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault(); // Prevent page from refreshing
+
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
+      const name = document.getElementById('auth-name').value;
+
+      // Choose the correct endpoint based on mode
+      const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
+      const payload = isLoginMode ? { email, password } : { name, email, password };
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.error || 'Something went wrong!');
+          return;
+        }
+
+        if (isLoginMode) {
+          // Save the JWT token securely in browser storage
+          localStorage.setItem('token', data.token);
+          alert('Logged in successfully!');
+          loadUserProfile(data.token);
+        } else {
+          alert('Account created successfully! Please log in now.');
+          // Switch to login mode automatically
+          toggleModeBtn.click();
+        }
+
+      } catch (error) {
+        console.error('Network error:', error);
+        alert('Failed to connect to the server.');
+      }
+    });
+
+    // 3. Fetch Profile using stored Token
+    async function loadUserProfile(token) {
+      try {
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Hide form, show welcome profile box
+          authFormsDiv.style.display = 'none';
+          userProfileBox.style.display = 'block';
+          displayUserName.innerText = data.user.name;
+          displayUserEmail.innerText = data.user.email;
+        } else {
+          // Token expired or invalid
+          localStorage.removeItem('token');
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      }
+    }
+
+    // 4. Logout Functionality
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('token');
+      userProfileBox.style.display = 'none';
+      authFormsDiv.style.display = 'block';
+      authForm.reset();
+      alert('Logged out successfully.');
+    });
+
+    // Check on page load if user is already logged in
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedToken = localStorage.getItem('token');
+      if (savedToken) {
+        loadUserProfile(savedToken);
+      }
+    });
   </script>
 
 </body>
