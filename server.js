@@ -203,6 +203,32 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
   }
 });
 
+// POST /api/scores - Save a student's quiz score (Protected Route)
+app.post('/api/scores', verifyToken, async (req, res) => {
+  try {
+    const { topic, score, total } = req.body;
+    const userId = req.user.userId; // Extracted from JWT token by verifyToken bouncer
+
+    // Create a new score record linked to this user
+    const newScore = await prisma.quizScore.create({
+      data: {
+        topic,
+        score,
+        total,
+        userId
+      }
+    });
+
+    res.status(201).json({ 
+      message: 'Score saved successfully!', 
+      newScore 
+    });
+  } catch (error) {
+    console.error('Error saving score:', error);
+    res.status(500).json({ error: 'Internal server error while saving score.' });
+  }
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Backend server is running live at http://localhost:${PORT}`);

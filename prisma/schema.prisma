@@ -25,10 +25,22 @@ model Option {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  name      String
-  createdAt DateTime @default(now())
+  id          Int         @id @default(autoincrement())
+  name        String
+  email       String      @unique
+  password    String
+  createdAt   DateTime    @default(now())
+  scores      QuizScore[] // <--- Add this line inside your User model!
 }
 
+model QuizScore {
+  id        Int      @id @default(autoincrement())
+  topic     String   // e.g., "Algebra", "Statistics"
+  score     Int      // Number of correct answers
+  total     Int      // Total questions in the quiz
+  createdAt DateTime @default(now())
+  
+  // Foreign Key to link this score to a specific User
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
