@@ -61,7 +61,8 @@ app.post('/api/quizzes/submit', async (req, res) => {
       success: true,
       isCorrect,
       message: isCorrect ? 'Spot on! Excellent work! 🎉' : 'Not quite, keep trying! 💪',
-      correctAnswer: quiz.correctAnswer
+      correctAnswer: quiz.correctAnswer,
+      explanation: quiz.explanation
     });
   } catch (error) {
     console.error('Error verifying answer:', error);
